@@ -9,11 +9,13 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
 import axios from "axios";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import io from "socket.io-client";
 import "./App.css";
 
-const socket = io("http://localhost:3000"); // Back-end URL
+// Backend URL
+const backendUrl = "https://bus-backend-2-5hr1.onrender.com";
+const socket = io(backendUrl); // Connect to the deployed backend
 
 const mapContainerStyle = {
   width: "100%",
@@ -22,7 +24,7 @@ const mapContainerStyle = {
 
 const center = {
   lat: 16.544893, // Default map center (Bhimavaram coordinates)
-  lng: 81.521240,
+  lng: 81.52124,
 };
 
 function App() {
@@ -35,14 +37,16 @@ function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [trackingInfo, setTrackingInfo] = useState(null);
   const [busLocation, setBusLocation] = useState(center); // Default to center
+  const [currentCity, setCurrentCity] = useState("");
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "0UpH3jRxaXAh2zD7k5zV", // Replace with your actual API key
+    googleMapsApiKey: "AIzaSyBRmS8-erW_CYMtluod-UDDx7cdpwbCbo0", // Replace with your actual API key
   });
 
   useEffect(() => {
     socket.on("busLocationUpdate", (data) => {
       setBusLocation(data.location);
+      setCurrentCity(data.currentCity);
     });
 
     return () => {
@@ -58,7 +62,7 @@ function App() {
 
   const searchBuses = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/searchBuses", {
+      const response = await axios.post(`${backendUrl}/searchBuses`, {
         from,
         to,
       });
@@ -70,11 +74,12 @@ function App() {
 
   const trackBus = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/trackBus", {
+      const response = await axios.post(`${backendUrl}/trackBus`, {
         serviceNumber,
       });
       setTrackingInfo(response.data);
       setBusLocation(response.data.location); // Update bus location on the map
+      setCurrentCity(response.data.currentCity);
     } catch (error) {
       console.error("Error tracking bus:", error);
     }
@@ -82,11 +87,12 @@ function App() {
 
   const searchByVehicle = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/searchByVehicle", {
+      const response = await axios.post(`${backendUrl}/searchByVehicle`, {
         vehicleNumber,
       });
       setTrackingInfo(response.data);
       setBusLocation(response.data.location); // Update bus location on the map
+      setCurrentCity(response.data.currentCity);
     } catch (error) {
       console.error("Error searching by vehicle:", error);
     }
@@ -94,11 +100,12 @@ function App() {
 
   const searchByService = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/searchByService", {
+      const response = await axios.post(`${backendUrl}/searchByService`, {
         serviceNumber,
       });
       setTrackingInfo(response.data);
       setBusLocation(response.data.location); // Update bus location on the map
+      setCurrentCity(response.data.currentCity);
     } catch (error) {
       console.error("Error searching by service:", error);
     }
@@ -106,7 +113,7 @@ function App() {
 
   const submitFeedback = async () => {
     try {
-      await axios.post("http://localhost:3000/submitFeedback", {
+      await axios.post(`${backendUrl}/submitFeedback`, {
         feedback,
       });
       alert("Feedback submitted successfully!");
@@ -115,13 +122,13 @@ function App() {
       console.error("Error submitting feedback:", error);
     }
   };
+
   if (loadError) {
     console.error("Google Maps load error:", loadError);
     return <div>Error loading maps. Check the console for details.</div>;
   }
 
   if (!isLoaded) return <div>Loading Maps...</div>;
-
 
   return (
     <div className="app">
@@ -143,30 +150,28 @@ function App() {
             <FontAwesomeIcon icon={faBus} className="button-icon" />
             <span>Search Buses between Locations</span>
           </button>
-          <br></br>
+          <br />
           <button className="option" onClick={() => showForm("trackBus")}>
             <FontAwesomeIcon icon={faMapMarkerAlt} className="button-icon" />
             <span>Bus Tracking</span>
           </button>
-          <br></br>
+          <br />
           <button className="option" onClick={() => showForm("searchByVehicle")}>
             <FontAwesomeIcon icon={faCar} className="button-icon" />
             <span>Search Bus by Vehicle Number</span>
           </button>
-          <br></br>
+          <br />
           <button className="option" onClick={() => showForm("searchByService")}>
             <FontAwesomeIcon icon={faIdCard} className="button-icon" />
             <span>Search Bus by Service Number</span>
           </button>
-          <br></br>
+          <br />
           <button className="option" onClick={() => showForm("feedback")}>
             <FontAwesomeIcon icon={faComment} className="button-icon" />
             <span>Customer Feedback</span>
           </button>
-          <br></br>
-          <button
-            className="option" onClick={() => showForm("emergency")}
-          >
+          <br />
+          <button className="option" onClick={() => showForm("emergency")}>
             <FontAwesomeIcon icon={faExclamationTriangle} className="button-icon" />
             <span>Emergency</span>
           </button>
@@ -223,6 +228,7 @@ function App() {
                   Location: Latitude {trackingInfo.location.lat}, Longitude{" "}
                   {trackingInfo.location.lng}
                 </p>
+                <p><strong>Current City:</strong> {currentCity}</p> 
               </div>
             )}
             <GoogleMap
@@ -253,6 +259,7 @@ function App() {
                   Location: Latitude {trackingInfo.location.lat}, Longitude{" "}
                   {trackingInfo.location.lng}
                 </p>
+                <p><strong>Current City:</strong> {currentCity}</p>
               </div>
             )}
             <GoogleMap
@@ -283,6 +290,7 @@ function App() {
                   Location: Latitude {trackingInfo.location.lat}, Longitude{" "}
                   {trackingInfo.location.lng}
                 </p>
+                <p><strong>Current City:</strong> {currentCity}</p>
               </div>
             )}
             <GoogleMap
@@ -311,7 +319,7 @@ function App() {
         {/* Emergency */}
         {activeForm === "emergency" && (
           <div className="form">
-           <h2>Emergency</h2>
+            <h2>Emergency</h2>
             <p>Please call 911 or contact the nearest authority.</p>
           </div>
         )}
